@@ -23,6 +23,7 @@ import com.beust.jcommander.converters.StringConverter;
 import com.beust.jcommander.internal.DefaultConverterFactory;
 import com.beust.jcommander.internal.Lists;
 import com.beust.jcommander.internal.Maps;
+import com.beust.jcommander.shell.Shell;
 
 import java.io.BufferedReader;
 import java.io.Console;
@@ -633,7 +634,7 @@ public class JCommander {
     }
   }
 
-  private String getMainParameterDescription() {
+  public String getMainParameterDescription() {
     if (m_descriptions == null) createDescriptions();
     return m_mainParameterAnnotation != null ? m_mainParameterAnnotation.description()
         : null;
@@ -779,9 +780,19 @@ public class JCommander {
         out.append("    " + name + s(spaceCount) + description + "\n");
       }
     }
+
+    //
+    // If a shell is being used, show it's usage as well.
+    //
+    for(Object o:m_objects) {
+      if( o instanceof Shell) {
+        ((Shell) o).usage(out);
+      }
+    }
+
   }
 
-  private String getCommandDescription() {
+  public String getCommandDescription() {
     for (Object object : m_objects) {
       Command command = object.getClass().getAnnotation(Command.class);
       if (command != null) {
@@ -942,6 +953,10 @@ public class JCommander {
     }
 
     return result.toString();
+  }
+
+  public List<Object> getObjects() {
+    return Collections.unmodifiableList(m_objects);
   }
 
   /**

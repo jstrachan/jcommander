@@ -26,7 +26,7 @@ import java.util.List;
 
 @Command(description = "Record changes to the repository")
 @Parameters(separators = "=")
-public class CommandCommit {
+public class CommandCommit implements Runnable {
 
   @Parameter(description = "<files>... the files to be added to the repository")
   public List<String> files;
@@ -36,4 +36,9 @@ public class CommandCommit {
 
   @Parameter(names = "--author")
   public String author;
+
+  public void run() {
+    System.out.println("commit run.  author: "+author+", amend: "+amend+", files: "+files);
+  }
+
 }
