@@ -18,13 +18,15 @@
 
 package com.beust.jcommander.command;
 
+import com.beust.jcommander.Command;
 import com.beust.jcommander.Parameter;
 
 import java.util.List;
 
+@Command(description="Add file contents to the index")
 public class CommandAdd {
 
-  @Parameter(description = "Add file contents to the index")
+  @Parameter(description = "<files> the files to be added")
   public List<String> patterns;
 
   @Parameter(names = "-i")

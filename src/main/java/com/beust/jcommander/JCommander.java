@@ -607,7 +607,13 @@ public class JCommander {
       object = o.getClass().newInstance();
       JCommander jc = new JCommander(object);
       jc.setProgramName(commandName);
-      jc.usage();
+
+      String description = jc.getCommandDescription();
+      if (description != null) {
+        out.append(description);
+        out.append("\n");
+      }
+      jc.usage(out);
     } catch (InstantiationException e) {
       e.printStackTrace();
     } catch (IllegalAccessException e) {
@@ -701,9 +707,23 @@ public class JCommander {
         int spaceCount  = ln - name.length();
         Object o = commands.getValue();
         JCommander jc = new JCommander(o);
-        out.append("    " + name + s(spaceCount) + jc.getMainParameterDescription() + "\n");
+        String description = jc.getCommandDescription();
+        if (description == null) {
+          description = jc.getMainParameterDescription();
+        }
+        out.append("    " + name + s(spaceCount) + description + "\n");
       }
     }
+  }
+
+  private String getCommandDescription() {
+    for (Object object : m_objects) {
+      Command command = object.getClass().getAnnotation(Command.class);
+      if (command != null) {
+        return command.description();
+      }
+    }
+    return null;
   }
 
   /**

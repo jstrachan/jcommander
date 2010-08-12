@@ -16,24 +16,20 @@
  * limitations under the License.
  */
 
-package com.beust.jcommander.command;
+package com.beust.jcommander;
 
-import com.beust.jcommander.Command;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 
-import java.util.List;
+import static java.lang.annotation.ElementType.TYPE;
 
-@Command(description = "Record changes to the repository")
-@Parameters(separators = "=")
-public class CommandCommit {
+@Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+@Target({ TYPE })
+public @interface Command {
 
-  @Parameter(description = "<files>... the files to be added to the repository")
-  public List<String> files;
+  /**
+   * A description of this command.
+   */
+  String description();
 
-  @Parameter(names = "--amend", description = "Amend")
-  public Boolean amend = false;
-
-  @Parameter(names = "--author")
-  public String author;
 }
