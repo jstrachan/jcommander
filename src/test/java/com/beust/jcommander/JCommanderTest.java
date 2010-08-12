@@ -41,6 +41,7 @@ import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -57,6 +58,26 @@ public class JCommanderTest {
     Assert.assertEquals(args.groups, "unit");
     Assert.assertEquals(args.parameters, Arrays.asList("a", "b", "c"));
   }
+
+  /**
+   * Make sure that the default args are displayed in the usage
+   * are allways the same even if they are getting set by command line
+   * arguments.
+   */
+  @Test
+  public void usageDisplaysDefaultArgs() {
+    JCommander jc = new JCommander(new Args1(), new String[]{"-log", "1"});
+    StringBuilder sb = new StringBuilder();
+    jc.usage(sb);
+    String expected = sb.toString();
+
+    jc = new JCommander(new Args1(), new String[]{"-debug", "-log", "2", "-long", "5"});
+    sb = new StringBuilder();
+    jc.usage(sb);
+    String actual = sb.toString();
+
+    Assert.assertEquals(actual, expected);
+  }    
 
   /**
    * Make sure that if there are args with multiple names (e.g. "-log" and "-verbose"),
