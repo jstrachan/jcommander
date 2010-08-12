@@ -668,7 +668,6 @@ public class JCommander {
     // Sort the options
     //
     Collections.sort(sorted, new Comparator<ParameterDescription>() {
-      @Override
       public int compare(ParameterDescription arg0, ParameterDescription arg1) {
         return arg0.getNames().toLowerCase().compareTo(arg1.getNames().toLowerCase());
       }
@@ -767,7 +766,6 @@ public class JCommander {
 
   /**
    * @param type The class of the field
-   * @param annotation The annotation
    * @param value The value to convert
    */
   public Object convertValue(Field field, Class type, String value) {
