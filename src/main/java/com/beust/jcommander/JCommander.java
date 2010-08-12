@@ -646,7 +646,7 @@ public class JCommander {
     if (m_mainParameterAnnotation != null) {
       out.append(" " + m_mainParameterAnnotation.description());
     }
-    out.append("\n  Options:");
+    out.append("\n  Options:\n");
 
     // 
     // Align the descriptions at the "longestName" column
