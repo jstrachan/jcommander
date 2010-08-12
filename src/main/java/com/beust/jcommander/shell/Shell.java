@@ -19,6 +19,7 @@ package com.beust.jcommander.shell;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.UsageReporter;
 import jline.ConsoleReader;
 import jline.Terminal;
@@ -55,19 +56,36 @@ abstract public class Shell implements Runnable, UsageReporter {
   public static class CloseShellException extends RuntimeException {
   }
 
-  public Object createExitCommand() {
-    return new Runnable() {
-      public void run() {
-        throw new Shell.CloseShellException();
-      }
-    };
+  static final private ThreadLocal<JCommander> CURRENT_JCOMMANDER = new ThreadLocal<JCommander>();
+  static final private ThreadLocal<Session> CURRENT_SESSION = new ThreadLocal<Session>();
+
+  /**
+   * @return the currently executing shell session.
+   */
+  static public Session getCurrentSession() {
+    return CURRENT_SESSION.get();
   }
 
-  static final ThreadLocal<Session> CURRENT_SESSION = new ThreadLocal<Session>();
+  /**
+   * @return the currently executing JCommander 
+   */
+  static public JCommander getCurrentJCommander() {
+    return CURRENT_JCOMMANDER.get();
+  }
 
   public class Session {
 
+    public Shell getShell() {
+      return Shell.this;
+    }
+
+    private final JCommander jcommander = getCurrentJCommander();
+
     private ConsoleReader reader;
+
+    public JCommander getJCommander() {
+      return jcommander;
+    }
 
     public ConsoleReader getConsoleReader() {
       return reader;
@@ -136,33 +154,20 @@ abstract public class Shell implements Runnable, UsageReporter {
 //                }
 //            }
 
-        while (true) {
-          String line = null;
-          try {
-            line = reader.readLine(prompt);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-          try {
+        try {
+          while (true) {
+            String line = null;
+            try {
+              line = reader.readLine(prompt);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
             if (line == null) {
               break;
             }
             executeLine(line);
-          } catch (CloseShellException e) {
-            break;
-          } catch (Throwable t) {
-            try {
-              lastException = t;
-              err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
-              if (printStackTraces) {
-                t.printStackTrace(err);
-              } else {
-                err.println(getShellName() + ": " + (t.getMessage() != null ? t.getMessage() : t.getClass().getName()));
-              }
-              err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
-            } catch (Exception ignore) {
-            }
           }
+        } catch (CloseShellException e) {
         }
 
       } finally {
@@ -220,22 +225,27 @@ abstract public class Shell implements Runnable, UsageReporter {
     }
   }
 
-  protected abstract String getShellName();
-  protected abstract String[] getDisplayedCommands();
-  protected abstract JCommander createSubCommand(String name);
+  public abstract String getShellName();
+
+  public abstract String[] getDisplayedCommands();
+
+  public abstract JCommander createSubCommand(String name);
 
   public void usage(StringBuilder out) {
-      out.append("  Commands:\n");
-      int ln = longestName(getDisplayedCommands()) + 3;
-      for (String name : getDisplayedCommands()) {
-        int spaceCount  = ln - name.length();
-        JCommander jc = createSubCommand(name);
+    out.append("\n");
+    out.append("  Commands:\n");
+    int ln = longestName(getDisplayedCommands()) + 3;
+    for (String name : getDisplayedCommands()) {
+      int spaceCount = ln - name.length();
+      JCommander jc = createSubCommand(name);
+      if( jc!=null ) {
         String description = jc.getCommandDescription();
         if (description == null) {
           description = jc.getMainParameterDescription();
         }
         out.append("    " + name + s(spaceCount) + description + "\n");
       }
+    }
   }
 
   private String s(int count) {
@@ -268,8 +278,31 @@ abstract public class Shell implements Runnable, UsageReporter {
       notFound(command);
       return;
     }
-    jc.parse(args);
-    executeCommand(command, jc);
+    try {
+      jc.parse(args);
+    } catch (ParameterException e) {
+      err.print(Ansi.ansi().fg(Ansi.Color.RED));
+      err.println(command + ": invalid usage: " + e.getMessage());
+      err.print(Ansi.ansi().reset());
+      err.flush();
+      out.println();
+      jc.usage();
+      return;
+    }
+    try {
+      executeCommand(command, jc);
+    } catch (CloseShellException e) {
+      throw e;
+    } catch (Throwable t) {
+      lastException = t;
+      err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
+      if (printStackTraces) {
+        t.printStackTrace(err);
+      } else {
+        err.println(command + ": " + t);
+      }
+      err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
+    }
   }
 
   protected void notFound(String command) {
@@ -287,11 +320,29 @@ abstract public class Shell implements Runnable, UsageReporter {
   protected void executeCommand(String name, JCommander command) {
     for (Object o : command.getObjects()) {
       if (o instanceof Runnable) {
-        ((Runnable) o).run();
+
+        JCommander original = CURRENT_JCOMMANDER.get();
+        CURRENT_JCOMMANDER.set(command);
+        try {
+          ((Runnable) o).run();
+        } finally {
+          CURRENT_JCOMMANDER.set(original);
+        }
+
         return;
       }
     }
     throw new IllegalArgumentException("The command " + name + " is not a Runnable command.");
+  }
+
+  public void run(JCommander jc) {
+    JCommander original = CURRENT_JCOMMANDER.get();
+    CURRENT_JCOMMANDER.set(jc);
+    try {
+      run();
+    } finally {
+      CURRENT_JCOMMANDER.set(original);
+    }
   }
 
   /**
@@ -301,7 +352,7 @@ abstract public class Shell implements Runnable, UsageReporter {
    * @throws IOException
    */
   public void run() {
-    if( cliArgs==null || cliArgs.isEmpty() ) {
+    if (cliArgs == null || cliArgs.isEmpty()) {
       new Session().execute();
     } else {
       String command = cliArgs.remove(0);
