@@ -38,25 +38,22 @@ public class ShellExample {
     }
 
     @Override
-    protected  String getShellName() {
+    public  String getShellName() {
       return "example";
     }
 
     @Override
-    protected  String[] getDisplayedCommands() {
+    public  String[] getDisplayedCommands() {
       return new String[]{"commit","add"};
     }
 
     @Override
-    protected JCommander createSubCommand(String name) {
+    public JCommander createSubCommand(String name) {
       if( "add".equals(name) ) {
         return new JCommander(new CommandAdd());
       }
       if( "commit".equals(name) ) {
         return new JCommander(new CommandCommit());
-      }
-      if( "exit".equals(name) ) {
-        return new JCommander(createExitCommand());
       }
       if( "?".equals(name) ) {
         return new JCommander(new Runnable(){
@@ -80,7 +77,7 @@ public class ShellExample {
     if( help.help) {
       jc.usage();
     } else {
-      shell.run();
+      shell.run(jc);
     }
   }
 
