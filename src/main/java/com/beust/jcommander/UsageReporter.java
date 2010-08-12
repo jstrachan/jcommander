@@ -15,24 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.beust.jcommander.shell;
+package com.beust.jcommander;
 
-import jline.UnixTerminal;
-
-import java.io.IOException;
-
-public class NoInterruptUnixTerminal extends UnixTerminal {
-
-    @Override
-    public void initializeTerminal() throws IOException, InterruptedException {
-        super.initializeTerminal();
-        stty("intr undef");
-    }
-
-    @Override
-    public void restoreTerminal() throws Exception {
-        stty("intr ^C");
-        super.restoreTerminal();
-    }
-
+/**
+ * <p>Implemented by objects that want to contribute to the usage display of a command</p>
+ *
+ * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
+ */
+public interface UsageReporter {
+    public void usage(StringBuilder out);
 }

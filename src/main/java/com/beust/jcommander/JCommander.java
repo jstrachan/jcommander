@@ -23,7 +23,6 @@ import com.beust.jcommander.converters.StringConverter;
 import com.beust.jcommander.internal.DefaultConverterFactory;
 import com.beust.jcommander.internal.Lists;
 import com.beust.jcommander.internal.Maps;
-import com.beust.jcommander.shell.Shell;
 
 import java.io.BufferedReader;
 import java.io.Console;
@@ -782,11 +781,11 @@ public class JCommander {
     }
 
     //
-    // If a shell is being used, show it's usage as well.
+    // If a UsageReporter is being used, include it's usage as well.
     //
     for(Object o:m_objects) {
-      if( o instanceof Shell) {
-        ((Shell) o).usage(out);
+      if( o instanceof UsageReporter) {
+        ((UsageReporter) o).usage(out);
       }
     }
 
