@@ -24,7 +24,7 @@ import com.beust.jcommander.Parameter;
 import java.util.List;
 
 @Command(description="Add file contents to the index")
-public class CommandAdd {
+public class CommandAdd implements Runnable {
 
   @Parameter(description = "<files> the files to be added")
   public List<String> patterns;
@@ -32,4 +32,8 @@ public class CommandAdd {
   @Parameter(names = "-i")
   public Boolean interactive = false;
 
+
+  public void run() {
+    System.out.println("add run.  interactive: "+interactive+", patterns: "+patterns);
+  }
 }
