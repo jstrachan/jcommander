@@ -220,9 +220,9 @@ abstract public class Shell implements Runnable, UsageReporter {
     }
   }
 
-  abstract String getShellName();
-  abstract String[] getDisplayedCommands();
-  abstract JCommander createSubCommand(String name);
+  protected abstract String getShellName();
+  protected abstract String[] getDisplayedCommands();
+  protected abstract JCommander createSubCommand(String name);
 
   public void usage(StringBuilder out) {
       out.append("  Commands:\n");

@@ -38,17 +38,17 @@ public class ShellExample {
     }
 
     @Override
-    String getShellName() {
+    protected  String getShellName() {
       return "example";
     }
 
     @Override
-    String[] getDisplayedCommands() {
+    protected  String[] getDisplayedCommands() {
       return new String[]{"commit","add"};
     }
 
     @Override
-    JCommander createSubCommand(String name) {
+    protected JCommander createSubCommand(String name) {
       if( "add".equals(name) ) {
         return new JCommander(new CommandAdd());
       }
