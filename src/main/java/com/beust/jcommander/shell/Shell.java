@@ -19,6 +19,7 @@ package com.beust.jcommander.shell;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.UsageReporter;
 import jline.ConsoleReader;
 import jline.Terminal;
 import jline.UnsupportedTerminal;
@@ -36,7 +37,7 @@ import java.util.List;
  *
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
-abstract public class Shell implements Runnable {
+abstract public class Shell implements Runnable, UsageReporter {
 
   final private InputStream in = System.in;
   final private PrintStream out = System.out;
