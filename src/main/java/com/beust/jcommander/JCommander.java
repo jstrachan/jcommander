@@ -62,6 +62,8 @@ public class JCommander {
    */
   private Map<String, ParameterDescription> m_descriptions;
 
+  private Map<Integer, ArgumentDescription> m_arguments;
+
   /**
    * The objects that contain fields annotated with @Parameter.
    */
@@ -430,6 +432,16 @@ public class JCommander {
             }
           }
         }
+        Argument a = f.getAnnotation(Argument.class);
+        if (a != null) {
+          Integer index = a.index();
+          if (getArguments().containsKey(index)) {
+            throw new ParameterException("Found the argument at index " + index + " multiple times");
+          }
+          p("Adding argument for " + index);
+          ArgumentDescription pd = new ArgumentDescription(object, a, f, m_bundle, this);
+          getArguments().put(index, pd);
+        }
       }
       // Traverse the super class until we find Object.class
       cls = cls.getSuperclass();
@@ -454,6 +466,7 @@ public class JCommander {
     // object)
     boolean commandParsed = false;
     int i = 0;
+    int argIndex = 0;
     while (i < args.length && ! commandParsed) {
       String arg = args[i];
       String a = trim(arg);
@@ -521,19 +534,30 @@ public class JCommander {
             //
             // Regular (non-command) parsing
             //
-            List mp = getMainParameter(arg);
-            String value = arg;
-            Object convertedValue = value;
- 
-            if (m_mainParameterField.getGenericType() instanceof ParameterizedType) {
-              ParameterizedType p = (ParameterizedType) m_mainParameterField.getGenericType();
-              Type cls = p.getActualTypeArguments()[0];
-              if (cls instanceof Class) {
-                convertedValue = convertValue(m_mainParameterField, (Class) cls, value);
-              }
+
+            // Do we have any arguments to eat up arguments
+            // TODO
+            if (getArguments().size() > argIndex) {
+              ArgumentDescription ad = getArgument(argIndex);
+              ad.addValue(arg);
+              argIndex++;
             }
- 
-            mp.add(convertedValue);
+            else {
+              // lets pass any remaining arguments into the main parameter
+              List mp = getMainParameter(arg);
+              String value = arg;
+              Object convertedValue = value;
+
+              if (m_mainParameterField.getGenericType() instanceof ParameterizedType) {
+                ParameterizedType p = (ParameterizedType) m_mainParameterField.getGenericType();
+                Type cls = p.getActualTypeArguments()[0];
+                if (cls instanceof Class) {
+                  convertedValue = convertValue(m_mainParameterField, (Class) cls, value);
+                }
+              }
+
+              mp.add(convertedValue);
+            }
           }
           else {
             //
@@ -555,6 +579,20 @@ public class JCommander {
       }
       i++;
     }
+    if (getArguments().size() > argIndex) {
+      ArgumentDescription ad = getArgument(argIndex);
+      if (ad.isRequired()) {
+        throw new ParameterException("Missing " + ad.getName() + " argument");
+      }
+    }
+  }
+
+  protected ArgumentDescription getArgument(int argIndex) {
+    ArgumentDescription ad = getArguments().get(argIndex);
+    if (ad == null) {
+      throw new ParameterException("Missing @Argument annotation for index " + argIndex);
+    }
+    return ad;
   }
 
   private String[] subArray(String[] args, int index) {
@@ -801,8 +839,19 @@ public class JCommander {
    * @param value The value to convert
    */
   public Object convertValue(Field field, Class type, String value) {
+    Class<? extends IStringConverter<?>> converterClass;
+    String optionName;
     Parameter annotation = field.getAnnotation(Parameter.class);
-    Class<? extends IStringConverter<?>> converterClass = annotation.converter();
+    if (annotation != null) {
+      converterClass = annotation.converter();
+      String[] names = annotation.names();
+      optionName = names.length > 0 ? names[0] : "[Main class]";
+    }
+    else {
+      Argument argAnn = field.getAnnotation(Argument.class);
+      converterClass = argAnn.converter();
+      optionName = field.getName();
+    }
 
     //
     // Try to find a converter on the annotation
@@ -835,8 +884,6 @@ public class JCommander {
     IStringConverter<?> converter;
     Object result = null;
     try {
-      String[] names = annotation.names();
-      String optionName = names.length > 0 ? names[0] : "[Main class]";
       converter = instantiateConverter(optionName, converterClass);
       result = converter.convert(value);
     } catch (IllegalArgumentException e) {
@@ -897,6 +944,16 @@ public class JCommander {
     }
 
     return result.toString();
+  }
+
+  /**
+   * A map to look up argument description per index position
+   */
+  protected Map<Integer, ArgumentDescription> getArguments() {
+    if (m_arguments == null) {
+      m_arguments = Maps.newHashMap();
+    }
+    return m_arguments;
   }
 }
 

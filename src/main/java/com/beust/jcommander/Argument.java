@@ -18,37 +18,41 @@
 
 package com.beust.jcommander;
 
-import static java.lang.annotation.ElementType.FIELD;
-
 import com.beust.jcommander.converters.NoConverter;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import static java.lang.annotation.ElementType.FIELD;
+
 /**
- * Represents a named parameter to a command line which is optional by default
- * and uses a name prefix to differentiate it to other parameters
+ * Represents a positional argument which is not named but appears at a specific order in the list of
+ * arguments after all the options are removed.
  */
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 @Target({ FIELD })
-public @interface Parameter {
+public @interface Argument {
 
   /**
-   * An array of allowed command line parameters (e.g. "-d", "--outputdir", etc...).
-   * If this attribute is omitted, the field it's annotating will receive all the
-   * unparsed options. There can only be at most one such annotation.
+   * The position index starting at 0 for the argument so that multiple arguments can be ordered
    */
-  String[] names() default {};
+  int index();
+  
+  /**
+   * The name of the argument which is used in the usage printing. If no name is specified then the name
+   * of the field is used.
+   */
+  String name() default "";
 
   /**
-   * A description of this option.
+   * A description of this argument.
    */
   String description() default "";
 
   /**
-   * Whether this option is required.
+   * Whether this argument is required.
    */
-  boolean required() default false;
+  boolean required() default true;
 
   /**
    * The key used to find the string in the message bundle.
@@ -56,24 +60,7 @@ public @interface Parameter {
   String descriptionKey() default "";
 
   /**
-   * How many parameter values this parameter will consume. For example,
-   * an arity of 2 will allow "-pair value1 value2".
-   */
-  int arity() default -1;
-
-  /**
-   * If true, this parameter is a password and it will be prompted on the console
-   * (if available).
-   */
-  boolean password() default false;
-
-  /**
    * The string converter to use for this field.
    */
   Class<? extends IStringConverter<?>> converter() default NoConverter.class;
-
-  /**
-   * If true, this parameter won't appear in the usage().
-   */
-  boolean hidden() default false;
 }
