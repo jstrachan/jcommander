@@ -1,7 +1,7 @@
 JCommander
 ==========
 
-This is an annotation based parameter parsing framework for Java.
+[JCommander](http://beust.com/jcommander) is an annotation based parameter parsing framework for Java.
 
 Here is a quick example:
 
@@ -27,4 +27,4 @@ and how you use it:
 
     Assert.assertEquals(jct.verbose.intValue(), 2);
 
-The full doc is available at http://beust.com/jcommander
+See the [full documentation](http://beust.com/jcommander)
