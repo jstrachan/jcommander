@@ -63,6 +63,10 @@ public class JCommander {
    */
   private Map<String, ParameterDescription> m_descriptions;
 
+  private Map<Integer, ArgumentDescription> m_arguments;
+
+  private List<ArgumentDescription> m_argumentList;
+
   /**
    * The objects that contain fields annotated with @Parameter.
    */
@@ -431,6 +435,16 @@ public class JCommander {
             }
           }
         }
+        Argument a = f.getAnnotation(Argument.class);
+        if (a != null) {
+          Integer index = a.index();
+          if (getArguments().containsKey(index)) {
+            throw new ParameterException("Found the argument at index " + index + " multiple times");
+          }
+          p("Adding argument for " + index);
+          ArgumentDescription pd = new ArgumentDescription(object, a, f, m_bundle, this);
+          getArguments().put(index, pd);
+        }
       }
       // Traverse the super class until we find Object.class
       cls = cls.getSuperclass();
@@ -455,6 +469,7 @@ public class JCommander {
     // object)
     boolean commandParsed = false;
     int i = 0;
+    int argIndex = 0;
     while (i < args.length && ! commandParsed) {
       String arg = args[i];
       String a = trim(arg);
@@ -522,19 +537,30 @@ public class JCommander {
             //
             // Regular (non-command) parsing
             //
-            List mp = getMainParameter(arg);
-            String value = arg;
-            Object convertedValue = value;
- 
-            if (m_mainParameterField.getGenericType() instanceof ParameterizedType) {
-              ParameterizedType p = (ParameterizedType) m_mainParameterField.getGenericType();
-              Type cls = p.getActualTypeArguments()[0];
-              if (cls instanceof Class) {
-                convertedValue = convertValue(m_mainParameterField, (Class) cls, value);
-              }
+
+            // Do we have any arguments to eat up arguments
+            // TODO
+            if (getArguments().size() > argIndex) {
+              ArgumentDescription ad = getArgument(argIndex);
+              ad.addValue(arg);
+              argIndex++;
             }
- 
-            mp.add(convertedValue);
+            else {
+              // lets pass any remaining arguments into the main parameter
+              List mp = getMainParameter(arg);
+              String value = arg;
+              Object convertedValue = value;
+
+              if (m_mainParameterField.getGenericType() instanceof ParameterizedType) {
+                ParameterizedType p = (ParameterizedType) m_mainParameterField.getGenericType();
+                Type cls = p.getActualTypeArguments()[0];
+                if (cls instanceof Class) {
+                  convertedValue = convertValue(m_mainParameterField, (Class) cls, value);
+                }
+              }
+
+              mp.add(convertedValue);
+            }
           }
           else {
             //
@@ -554,6 +580,20 @@ public class JCommander {
       }
       i++;
     }
+    if (getArguments().size() > argIndex) {
+      ArgumentDescription ad = getArgument(argIndex);
+      if (ad.isRequired()) {
+        throw new ParameterException("Missing " + ad.getName() + " argument");
+      }
+    }
+  }
+
+  protected ArgumentDescription getArgument(int argIndex) {
+    ArgumentDescription ad = getArguments().get(argIndex);
+    if (ad == null) {
+      throw new ParameterException("Missing @Argument annotation for index " + argIndex);
+    }
+    return ad;
   }
 
   private String[] subArray(String[] args, int index) {
@@ -661,8 +701,26 @@ public class JCommander {
     String programName = m_programName != null ? m_programName : "<main class>";
     out.append("Usage: " + programName + " [options]");
     if (hasCommands) out.append(" [command] [command options]");
+    List<ArgumentDescription> adList = getArgumentList();
+    int longestArg = 0;
+    for (ArgumentDescription ad : adList) {
+      String name = ad.getName();
+      if (name.length() > longestArg) {
+        longestArg = name.length();
+      }
+      out.append(" " + ad.getName());
+    }
+    longestArg += 2; // use 2 space at least
     if (m_mainParameterAnnotation != null) {
       out.append(" " + m_mainParameterAnnotation.description());
+    }
+    for (ArgumentDescription ad : adList) {
+      String name = ad.getName();
+      int spaceCount = longestArg - name.length();
+      out.append("\n    " + name + s(spaceCount) + ad.getDescription());
+    }
+    if (!adList.isEmpty()) {
+      out.append("\n");
     }
     out.append("\n  Options:\n");
 
@@ -788,8 +846,19 @@ public class JCommander {
    * @param value The value to convert
    */
   public Object convertValue(Field field, Class type, String value) {
+    Class<? extends IStringConverter<?>> converterClass;
+    String optionName;
     Parameter annotation = field.getAnnotation(Parameter.class);
-    Class<? extends IStringConverter<?>> converterClass = annotation.converter();
+    if (annotation != null) {
+      converterClass = annotation.converter();
+      String[] names = annotation.names();
+      optionName = names.length > 0 ? names[0] : "[Main class]";
+    }
+    else {
+      Argument argAnn = field.getAnnotation(Argument.class);
+      converterClass = argAnn.converter();
+      optionName = field.getName();
+    }
 
     //
     // Try to find a converter on the annotation
@@ -822,8 +891,6 @@ public class JCommander {
     IStringConverter<?> converter;
     Object result = null;
     try {
-      String[] names = annotation.names();
-      String optionName = names.length > 0 ? names[0] : "[Main class]";
       converter = instantiateConverter(optionName, converterClass);
       result = converter.convert(value);
     } catch (IllegalArgumentException e) {
@@ -890,6 +957,35 @@ public class JCommander {
 
   public List<Object> getObjects() {
     return Collections.unmodifiableList(m_objects);
+  }
+
+  /**
+   * A map to look up argument description per index position
+   */
+  protected Map<Integer, ArgumentDescription> getArguments() {
+    if (m_arguments == null) {
+      m_arguments = Maps.newHashMap();
+    }
+    return m_arguments;
+  }
+
+  protected List<ArgumentDescription> getArgumentList() {
+    if (m_argumentList == null) {
+      Map<Integer, ArgumentDescription> map = getArguments();
+      int s = map.size();
+      m_argumentList = new ArrayList<ArgumentDescription>(s);
+      ArgumentDescription previous = null;
+      for (int i = 0; i < s; i++) {
+        ArgumentDescription ad = getArgument(i);
+        if (previous != null && !previous.isRequired() && ad.isRequired()) {
+          throw new ParameterException("Argument " + ad.getName() + " at index " + i +
+              " is required when argument " + previous.getName() + " before it is optional");
+        }
+        previous = ad;
+        m_argumentList.add(ad);
+      }
+    }
+    return m_argumentList;
   }
 }
 

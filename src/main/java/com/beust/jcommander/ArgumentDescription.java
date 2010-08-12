@@ -25,33 +25,30 @@ import com.beust.jcommander.internal.ResourceBundles;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
 
 import static com.beust.jcommander.internal.Strings.isEmpty;
 
-public class ParameterDescription {
+public class ArgumentDescription {
   private Object m_object;
-  private Parameter m_parameterAnnotation;
+  private Argument m_argumentAnnotation;
   private Field m_field;
   /** Keep track of whether a value was added to flag an error */
   private boolean m_assigned = false;
   private ResourceBundle m_bundle;
   private String m_description;
   private JCommander m_jCommander;
-  private Object m_default;
 
-  public ParameterDescription(Object object, Parameter annotation, Field field,
+  public ArgumentDescription(Object object, Argument annotation, Field field,
       ResourceBundle bundle, JCommander jc) {
     init(object, annotation, field, bundle, jc);
   }
 
-
-  private void init(Object object, Parameter annotation, Field field, ResourceBundle bundle,
+  private void init(Object object, Argument annotation, Field field, ResourceBundle bundle,
       JCommander jCommander) {
     m_object = object;
-    m_parameterAnnotation = annotation;
+    m_argumentAnnotation = annotation;
     m_field = field;
     m_bundle = bundle;
     if (m_bundle == null) {
@@ -69,15 +66,6 @@ public class ParameterDescription {
 //            "default description:'" + m_description + "'");
       }
     }
-
-    try {
-      m_default = m_field.get(m_object);
-    } catch (Exception e) {
-    }
-  }
-
-  public Object getDefault() {
-    return m_default;
   }
 
   public String getDescription() {
@@ -87,24 +75,19 @@ public class ParameterDescription {
   public Object getObject() {
     return m_object;
   }
-
-  public String getNames() {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < m_parameterAnnotation.names().length; i++) {
-      if (i > 0) sb.append(", ");
-      sb.append(m_parameterAnnotation.names()[i]);
-    }
-    return sb.toString();
-  }
-
-  public Parameter getParameter() {
-    return m_parameterAnnotation;
+  
+  public Argument getArgument() {
+    return m_argumentAnnotation;
   }
 
   public Field getField() {
     return m_field;
   }
 
+  public boolean isRequired() {
+    return m_argumentAnnotation.required();
+  }
+  
   private boolean isMultiOption() {
     Class<?> fieldType = m_field.getType();
     return fieldType.equals(List.class) || fieldType.equals(Set.class);
@@ -124,23 +107,20 @@ public class ParameterDescription {
   /**
    * Add the specified value to the field. First look up any field converter, then
    * any type converter, and if we can't find any, throw an exception.
-   * 
-   * @param markAdded if true, mark this parameter as assigned
    */
   public void addValue(String value, boolean isDefault) {
     p("Adding " + (isDefault ? "default " : "") + "value:" + value
         + " to parameter:" + m_field.getName());
     if (m_assigned && ! isMultiOption()) {
-      throw new ParameterException("Can only specify option " + m_parameterAnnotation.names()[0]
+      throw new ParameterException("Can only specify argument " + getName()
           + " once.");
     }
 
     Class<?> type = m_field.getType();
 
     if (! isDefault) m_assigned = true;
-    Object convertedValue = m_jCommander.convertValue(this, value);
+    Object convertedValue = m_jCommander.convertValue(m_field, m_field.getType(), value);
     boolean isCollection = Collection.class.isAssignableFrom(type);
-    boolean isMainParameter = m_parameterAnnotation.names().length == 0;
 
     try {
       if (isCollection) {
@@ -152,7 +132,7 @@ public class ParameterDescription {
         }
         if (convertedValue instanceof Collection) {
           l.addAll((Collection) convertedValue);
-        } else { // if (isMainParameter || m_parameterAnnotation.arity() > 1) {
+        } else { // if (isMainArgument || m_argumentAnnotation.arity() > 1) {
           l.add(convertedValue);
 //        } else {
 //          l.
@@ -166,14 +146,22 @@ public class ParameterDescription {
     }
   }
 
+  public String getName() {
+    String a = m_argumentAnnotation.name();
+    if (isEmpty(a)) {
+      return getField().getName();
+    }
+    return a;
+  }
+
   private void p(String string) {
     if (System.getProperty(JCommander.DEBUG_PROPERTY) != null) {
-      System.out.println("[ParameterDescription] " + string);
+      System.out.println("[ArgumentDescription] " + string);
     }
   }
 
   @Override
   public String toString() {
-    return "[ParameterDescription " + m_field.getName() + "]";
+    return "[ArgumentDescription " + m_field.getName() + "]";
   }
 }

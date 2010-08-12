@@ -18,23 +18,28 @@
 
 package com.beust.jcommander.args;
 
+import com.beust.jcommander.Argument;
 import com.beust.jcommander.HostPort;
 import com.beust.jcommander.Parameter;
-
 import org.testng.collections.Lists;
 
 import java.util.List;
 
 /**
- * A class with main parameter that is not a List<String>
+ * A class with some arguments
  * 
  * @author cbeust
  */
-public class ArgsMainParameter1 implements IHostPorts {
-  @Parameter
-  public List<HostPort> parameters = Lists.newArrayList();
+public class ArgsArgumentParameter1 {
+  @Parameter(names = "--debug", description = "Turns on debug mode")
+  public boolean debug;
 
-  public List<HostPort> getHostPorts() {
-    return parameters;
-  }
+  @Argument(index = 0, description="From file")
+  public String from;
+
+  @Argument(index = 1, description="To file")
+  public String to;
+
+  @Argument(index = 2, description="Optional thingy", required = false)
+  public String optional = "hey";
 }
