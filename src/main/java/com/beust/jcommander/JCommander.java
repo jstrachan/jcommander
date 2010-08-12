@@ -126,6 +126,38 @@ public class JCommander {
     CONVERTER_FACTORIES.add(new DefaultConverterFactory());
   };
 
+  /**
+   * Returns a new commander with no command line arguments so that it can be configured first
+   * such as to call {@link #setProgramName(String)} or {@link #addCommand(String, Object)}
+   * then the {@link #parse(String...)} method can be called to parse the arguments.
+   *
+   * This method also avoids
+   * <a href="http://stackoverflow.com/questions/3313929/how-do-i-disambiguate-in-scala-between-methods-with-vararg-and-without">this issue</a>
+   * with Scala unable to differentiate the constructors since there are multiple matching var-args combinations if you allow zero sized arrays as a possible match
+   *
+   * @param object
+   * @return
+   */
+  public static JCommander newInstance(Object object) {
+    return new JCommander(object);
+  }
+
+  /**
+   * Returns a new commander with no command line arguments so that it can be configured first
+   * such as to call {@link #setProgramName(String)} or {@link #addCommand(String, Object)}
+   * then the {@link #parse(String...)} method can be called to parse the arguments.
+   *
+   * This method also avoids
+   * <a href="http://stackoverflow.com/questions/3313929/how-do-i-disambiguate-in-scala-between-methods-with-vararg-and-without">this issue</a>
+   * with Scala unable to differentiate the constructors since there are multiple matching var-args combinations if you allow zero sized arrays as a possible match
+   *
+   * @param object
+   * @return
+   */
+  public static JCommander newInstance(Object object, ResourceBundle bundle) {
+    return new JCommander(object, bundle);
+  }
+
   public JCommander(Object object) {
     init(object, null);
   }
