@@ -31,6 +31,9 @@ import java.util.List;
  * @author cbeust
  */
 public class ArgsArgumentParameter1 {
+  @Parameter(names = "--debug", description = "Turns on debug mode")
+  public boolean debug;
+
   @Argument(index = 0, description="From file")
   public String from;
 

@@ -64,6 +64,8 @@ public class JCommander {
 
   private Map<Integer, ArgumentDescription> m_arguments;
 
+  private List<ArgumentDescription> m_argumentList;
+
   /**
    * The objects that contain fields annotated with @Parameter.
    */
@@ -698,8 +700,26 @@ public class JCommander {
     String programName = m_programName != null ? m_programName : "<main class>";
     out.append("Usage: " + programName + " [options]");
     if (hasCommands) out.append(" [command] [command options]");
+    List<ArgumentDescription> adList = getArgumentList();
+    int longestArg = 0;
+    for (ArgumentDescription ad : adList) {
+      String name = ad.getName();
+      if (name.length() > longestArg) {
+        longestArg = name.length();
+      }
+      out.append(" " + ad.getName());
+    }
+    longestArg += 2; // use 2 space at least
     if (m_mainParameterAnnotation != null) {
       out.append(" " + m_mainParameterAnnotation.description());
+    }
+    for (ArgumentDescription ad : adList) {
+      String name = ad.getName();
+      int spaceCount = longestArg - name.length();
+      out.append("\n    " + name + s(spaceCount) + ad.getDescription());
+    }
+    if (!adList.isEmpty()) {
+      out.append("\n");
     }
     out.append("\n  Options:\n");
 
@@ -932,6 +952,25 @@ public class JCommander {
       m_arguments = Maps.newHashMap();
     }
     return m_arguments;
+  }
+
+  protected List<ArgumentDescription> getArgumentList() {
+    if (m_argumentList == null) {
+      Map<Integer, ArgumentDescription> map = getArguments();
+      int s = map.size();
+      m_argumentList = new ArrayList<ArgumentDescription>(s);
+      ArgumentDescription previous = null;
+      for (int i = 0; i < s; i++) {
+        ArgumentDescription ad = getArgument(i);
+        if (previous != null && !previous.isRequired() && ad.isRequired()) {
+          throw new ParameterException("Argument " + ad.getName() + " at index " + i +
+              " is required when argument " + previous.getName() + " before it is optional");
+        }
+        previous = ad;
+        m_argumentList.add(ad);
+      }
+    }
+    return m_argumentList;
   }
 }
 

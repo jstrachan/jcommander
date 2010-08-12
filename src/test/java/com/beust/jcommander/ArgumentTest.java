@@ -35,6 +35,7 @@ public class ArgumentTest {
     JCommander jc = new JCommander(a);
     jc.parse("foo", "bar");
 
+    Assert.assertEquals(a.debug, false);
     Assert.assertEquals(a.from, "foo");
     Assert.assertEquals(a.to, "bar");
     Assert.assertEquals(a.optional, "hey");
@@ -46,6 +47,43 @@ public class ArgumentTest {
     JCommander jc = new JCommander(a);
     jc.parse("foo", "bar", "another");
 
+    Assert.assertEquals(a.debug, false);
+    Assert.assertEquals(a.from, "foo");
+    Assert.assertEquals(a.to, "bar");
+    Assert.assertEquals(a.optional, "another");
+  }
+
+  @Test
+  public void parameterAndTwoArguments() {
+    ArgsArgumentParameter1 a = new ArgsArgumentParameter1();
+    JCommander jc = new JCommander(a);
+    jc.parse("--debug", "foo", "bar");
+
+    Assert.assertEquals(a.debug, true);
+    Assert.assertEquals(a.from, "foo");
+    Assert.assertEquals(a.to, "bar");
+    Assert.assertEquals(a.optional, "hey");
+  }
+
+  @Test
+  public void parameterThenTwoArgumentsAndOptional() {
+    ArgsArgumentParameter1 a = new ArgsArgumentParameter1();
+    JCommander jc = new JCommander(a);
+    jc.parse("--debug", "foo", "bar", "another");
+
+    Assert.assertEquals(a.debug, true);
+    Assert.assertEquals(a.from, "foo");
+    Assert.assertEquals(a.to, "bar");
+    Assert.assertEquals(a.optional, "another");
+  }
+
+  @Test
+  public void parameterInMiddleOfArgumentAndOptional() {
+    ArgsArgumentParameter1 a = new ArgsArgumentParameter1();
+    JCommander jc = new JCommander(a);
+    jc.parse("foo", "--debug", "bar", "another");
+
+    Assert.assertEquals(a.debug, true);
     Assert.assertEquals(a.from, "foo");
     Assert.assertEquals(a.to, "bar");
     Assert.assertEquals(a.optional, "another");
@@ -65,8 +103,14 @@ public class ArgumentTest {
     new JCommander(a, argv);
   }
 
+  @Test
+  public void usage() {
+    ArgsArgumentParameter1 a = new ArgsArgumentParameter1();
+    new JCommander(a).usage();
+  }
+
   public static void main(String[] args) {
-    new ArgumentTest().requiredArgumentsFail();
+    new ArgumentTest().usage();
   }
 }
 
