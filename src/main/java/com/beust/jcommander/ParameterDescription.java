@@ -40,6 +40,7 @@ public class ParameterDescription {
   private ResourceBundle m_bundle;
   private String m_description;
   private JCommander m_jCommander;
+  private Object m_default;
 
   public ParameterDescription(Object object, Parameter annotation, Field field,
       ResourceBundle bundle, JCommander jc) {
@@ -68,6 +69,15 @@ public class ParameterDescription {
 //            "default description:'" + m_description + "'");
       }
     }
+
+    try {
+      m_default = m_field.get(m_object);
+    } catch (Exception e) {
+    }
+  }
+
+  public Object getDefault() {
+    return m_default;
   }
 
   public String getDescription() {
