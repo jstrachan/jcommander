@@ -110,7 +110,7 @@ public class JCommander {
   /**
    * List of commands and their instance.
    */
-  private Map<String, JCommander> m_commands = Maps.newHashMap();
+  private Map<String, ICommanderProvider> m_commands = Maps.newHashMap();
 
   /**
    * The name of the command after the parsing has run.
@@ -557,7 +557,7 @@ public class JCommander {
             //
             // Command parsing
             //
-            JCommander jc = m_commands.get(arg);
+            JCommander jc = getSubCommand(arg);
             if (jc == null) throw new ParameterException("Expected a command, got " + arg);
             m_parsedCommand = arg;
 
@@ -578,6 +578,7 @@ public class JCommander {
       }
     }
   }
+
 
 
   /**
@@ -657,7 +658,7 @@ public class JCommander {
             //
             // Command parsing
             //
-            JCommander jc = m_commands.get(a);
+            JCommander jc = getSubCommand(a);
             if (jc == null) throw new ParameterException("Expected a command, got " + a);
 
             // Found a valid command, ask it to parse the remainder of the arguments.
@@ -754,7 +755,7 @@ public class JCommander {
    * Store the help for the command in the passed string builder.
    */
   public void usage(String commandName, StringBuilder out) {
-    JCommander jc = m_commands.get(commandName);
+    JCommander jc = getSubCommand(commandName);
     String description = jc.getCommandDescription();
     if (description != null) {
       out.append(description);
@@ -860,10 +861,9 @@ public class JCommander {
     if (hasCommands) {
       out.append("  Commands:\n");
       int ln = longestName(m_commands.keySet()) + 3;
-      for (Map.Entry<String, JCommander> commands : m_commands.entrySet()) {
-        String name = commands.getKey();
+      for (String name : m_commands.keySet()) {
+        JCommander jc = getSubCommand(name);
         int spaceCount  = ln - name.length();
-        JCommander jc = commands.getValue();
         String description = jc.getCommandDescription();
         if (description == null) {
           description = jc.getMainParameterDescription();
@@ -1024,10 +1024,21 @@ public class JCommander {
   /**
    * Add a command object.
    */
-  public void addCommand(String name, Object object) {
-    JCommander jc = new JCommander(object);
-    jc.setProgramName(name);
-    m_commands.put(name, jc);
+  public void addCommand(String name, final Object object) {
+    addCommandProvider(name, new ICommanderProvider() {
+      public JCommander createCommander(String name) {
+        JCommander jc = new JCommander(object);
+        jc.setProgramName(name);
+        return jc;
+      }
+    });
+  }
+
+  /**
+   * Add a lazily created command object and commander.
+   */
+  public void addCommandProvider(String name, ICommanderProvider provider) {
+    m_commands.put(name, provider);
   }
 
   public String getParsedCommand() {
@@ -1092,6 +1103,15 @@ public class JCommander {
       }
     }
     return m_descriptions;
+  }
+
+
+  protected JCommander getSubCommand(String name) {
+    ICommanderProvider provider = m_commands.get(name);
+    if (provider != null) {
+      return provider.createCommander(name);
+    }
+    return null;
   }
 }
 

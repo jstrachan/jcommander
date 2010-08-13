@@ -53,7 +53,6 @@ abstract public class Shell implements Runnable, UsageReporter {
 
   @Parameter(description = "a sub command to execute, if not specified, you will be placed into an interactive shell.")
   public List<String> cliArgs;
-  private Completor completer = createCompleter();
 
   public static class CloseShellException extends RuntimeException {
   }
@@ -114,9 +113,7 @@ abstract public class Shell implements Runnable, UsageReporter {
         }
 
         reader.setBellEnabled(bellEnabled);
-        if (completer != null) {
-          reader.addCompletor(completer);
-        }
+        reader.addCompletor(createCompleter(this));
 
         try {
           while (true) {
@@ -176,7 +173,7 @@ abstract public class Shell implements Runnable, UsageReporter {
 
 
   /**
-   * Override to customize command line parsing, should call {@link #executeCommand(String, String[])}
+   * Override to customize command line parsing, should call {@link #executeCommand(String[])}
    */
   public void executeLine(String line) {
     // implementing a really simple command line parser..
@@ -185,7 +182,7 @@ abstract public class Shell implements Runnable, UsageReporter {
     if (args.length > 0) {
       String[] commandArgs = new String[args.length - 1];
       System.arraycopy(args, 1, commandArgs, 0, args.length - 1);
-      executeCommand(args[0], commandArgs);
+      executeCommand(commandArgs);
     }
   }
 
@@ -234,19 +231,15 @@ abstract public class Shell implements Runnable, UsageReporter {
   /**
    * Override if you want to change how the command is looked up and executed.  It reports
    * an error if the command is not found.
-   * This ends up calling {@link #executeCommand(String, com.beust.jcommander.JCommander)}
+   * This ends up calling {@link #executeCommand(com.beust.jcommander.JCommander)}
    */
-  protected void executeCommand(String command, String[] args) {
-    JCommander jc = createSubCommand(command);
-    if (jc == null) {
-      displayNotFound(command);
-      return;
-    }
+  protected void executeCommand(String[] args) {
+    JCommander jc = getCurrentJCommander();
     try {
       jc.parse(args);
     } catch (ParameterException e) {
       err.print(Ansi.ansi().fg(Ansi.Color.RED));
-      err.println(command + ": invalid usage: " + e.getMessage());
+      err.println("invalid usage: " + e.getMessage());
       err.print(Ansi.ansi().reset());
       err.flush();
       out.println();
@@ -254,25 +247,21 @@ abstract public class Shell implements Runnable, UsageReporter {
       return;
     }
     try {
-      executeCommand(command, jc);
+      executeCommand(jc);
     } catch (CloseShellException e) {
       throw e;
     } catch (Throwable t) {
-      displayFailure(command, t);
+      displayFailure(t);
     }
   }
 
-  public void displayFailure(String command, Throwable t) {
+  public void displayFailure(Throwable t) {
     lastException = t;
     err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
     if (printStackTraces) {
       t.printStackTrace(err);
     } else {
-      if( command==null ) {
-        err.println(getShellName() + ": " + t);
-      } else {
-        err.println(command + ": " + t);
-      }
+      err.println(getShellName() + ": " + t);
     }
     err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
   }
@@ -289,7 +278,8 @@ abstract public class Shell implements Runnable, UsageReporter {
    * added to the JCommander object.  Override if you want to execute
    * commands using a different strategy.
    */
-  protected void executeCommand(String name, JCommander command) {
+  protected void executeCommand(JCommander command) {
+    // TODO how to???
     for (Object o : command.getObjects()) {
       if (o instanceof Runnable) {
 
@@ -304,7 +294,7 @@ abstract public class Shell implements Runnable, UsageReporter {
         return;
       }
     }
-    throw new IllegalArgumentException("The command " + name + " is not a Runnable command.");
+    throw new IllegalArgumentException("Could not find Runnable command.");
   }
 
   public void run(JCommander jc) {
@@ -327,9 +317,8 @@ abstract public class Shell implements Runnable, UsageReporter {
     if (cliArgs == null || cliArgs.isEmpty()) {
       new Session().execute();
     } else {
-      String command = cliArgs.remove(0);
       String args[] = cliArgs.toArray(new String[cliArgs.size()]);
-      executeCommand(command, args);
+      executeCommand(args);
     }
   }
 
@@ -352,8 +341,8 @@ abstract public class Shell implements Runnable, UsageReporter {
     }
   }
 
-  protected Completor createCompleter() {
-    return new ShellCompletor(this);
+  protected Completor createCompleter(Session session) {
+    return new ShellCompletor(session);
   }
 
 }

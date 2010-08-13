@@ -17,11 +17,11 @@
  */
 package com.beust.jcommander.shell;
 
+import com.beust.jcommander.ICommanderProvider;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.command.CommandAdd;
 import com.beust.jcommander.command.CommandCommit;
-
-import java.util.HashMap;
+import com.beust.jcommander.internal.CommanderProviderSupport;
 
 /**
  * <p>
@@ -79,7 +79,31 @@ public class ShellExample {
   static public void main(String args[]) {
     Help help = new Help();
     TestShell shell = new TestShell();
-    JCommander jc = new JCommander(new Object[]{shell,help});
+    JCommander jc = new JCommander(new Object[]{shell, help});
+
+    jc.addCommand("add", new CommanderProviderSupport() {
+      protected Object createCommandObject(String name) {
+        return new CommandAdd();
+      }
+    });
+    jc.addCommand("commit", new CommanderProviderSupport() {
+      protected Object createCommandObject(String name) {
+        return new CommandCommit();
+      }
+    });
+/*
+    jc.addCommand("help", new CommanderProviderSupport() {
+      protected Object createCommandObject(String name) {
+        return new Help();
+      }
+    });
+*/
+    jc.addCommand("exit", new CommanderProviderSupport() {
+      protected Object createCommandObject(String name) {
+        System.exit(0);
+        return null;
+      }
+    });
     jc.parse(args);
     if( help.help) {
       jc.usage();

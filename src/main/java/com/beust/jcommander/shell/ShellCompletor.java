@@ -17,6 +17,7 @@
  */
 package com.beust.jcommander.shell;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.internal.Lists;
 import jline.ArgumentCompletor;
 import jline.Completor;
@@ -29,16 +30,16 @@ import java.util.List;
 */
 class ShellCompletor implements Completor {
 
-  private final Shell shell;
+  private final Shell.Session session;
   private final ArgumentCompletor.ArgumentDelimiter delim;
 
-  public ShellCompletor(Shell shell) {
-    this(shell, new ArgumentCompletor.WhitespaceArgumentDelimiter());
+  public ShellCompletor(Shell.Session session) {
+    this(session, new ArgumentCompletor.WhitespaceArgumentDelimiter());
   }
 
-  public ShellCompletor(Shell shell, ArgumentCompletor.ArgumentDelimiter delim) {
+  public ShellCompletor(Shell.Session session, ArgumentCompletor.ArgumentDelimiter delim) {
+    this.session = session;
     this.delim = delim;
-    this.shell = shell;
   }
 
 
@@ -52,10 +53,14 @@ class ShellCompletor implements Completor {
     CompletionResult results = new CompletionResult(cursorArgument);
 
     String[] args = argumentList.getArguments();
-    System.out.println("Args: " + Arrays.asList(args) + " cursor Argument: " + cursorArgument);
-    Shell.getCurrentJCommander().tabComplete(args, index, results);
+    //JCommander commander = session.getJCommander();
+    //JCommander commander = Shell.getCurrentSession().getJCommander();
+    JCommander commander = Shell.getCurrentJCommander();
+    commander.tabComplete(args, index, results);
     results.getResults(candidates);
-    
+    System.out.println("\nArgs: " + Arrays.asList(args) + " cursor Argument: " + cursorArgument + " index: " + index + " => " + candidates);
+    System.out.println("Commands: " + commander.getCommandDescription());
+
     //System.out.println("Cursor arg: " + cursorArgument + " index: " + argumentIndex + " arg Index: " + argumentList.getArgumentPosition());
     //System.out.println("Buffer: " + buffer + " cursor: " + cursor + " length: " + buffer.length() + " candidates: " + candidates);
     return candidates.size();
