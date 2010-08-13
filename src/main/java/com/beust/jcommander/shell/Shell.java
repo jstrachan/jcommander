@@ -114,49 +114,9 @@ abstract public class Shell implements Runnable, UsageReporter {
         }
 
         reader.setBellEnabled(bellEnabled);
-
-            if (completer != null) {
-                reader.addCompletor(completer);
-/*
-                    new CompleterAsCompletor(
-                        new AggregateCompleter(
-                            Arrays.asList(
-                                completer,
-                                new SessionScopeCompleter( session, completer )
-                            )
-                        )
-                    )
-                );
-*/
-            }
-
-
-//            String scriptFileName = System.getProperty(SHELL_INIT_SCRIPT);
-//            if (scriptFileName != null) {
-//                Reader r = null;
-//                try {
-//                    File scriptFile = new File(scriptFileName);
-//                    r = new InputStreamReader(new FileInputStream(scriptFile));
-//                    CharArrayWriter w = new CharArrayWriter();
-//                    int n;
-//                    char[] buf = new char[8192];
-//                    while ((n = r.read(buf)) > 0) {
-//                        w.write(buf, 0, n);
-//                    }
-//                    session.execute(new String(w.toCharArray()));
-//                } catch (Exception e) {
-//                    LOGGER.debug("Error in initialization script", e);
-//                    System.err.println("Error in initialization script: " + e.getMessage());
-//                } finally {
-//                    if (r != null) {
-//                        try {
-//                            r.close();
-//                        } catch (IOException e) {
-//                            // Ignore
-//                        }
-//                    }
-//                }
-//            }
+        if (completer != null) {
+          reader.addCompletor(completer);
+        }
 
         try {
           while (true) {
