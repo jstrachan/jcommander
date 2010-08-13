@@ -207,6 +207,14 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- to enable gpg signing settings in ~/.m2/settings.xml -->
+    <profile>
+      <id>release</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
   </profiles>
 
 </project>
