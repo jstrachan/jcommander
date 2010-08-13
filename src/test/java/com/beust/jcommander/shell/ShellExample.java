@@ -44,7 +44,7 @@ public class ShellExample {
 
     @Override
     public  String[] getDisplayedCommands() {
-      return new String[]{"commit","add"};
+      return new String[]{"commit","add", "exit", "help"};
     }
 
     @Override
@@ -54,6 +54,12 @@ public class ShellExample {
       }
       if( "commit".equals(name) ) {
         return new JCommander(new CommandCommit());
+      }
+      if( "help".equals(name) ) {
+        return new JCommander(new Help());
+      }
+      if( "exit".equals(name) ) {
+        System.exit(0);
       }
       if( "?".equals(name) ) {
         return new JCommander(new Runnable(){
@@ -68,6 +74,7 @@ public class ShellExample {
     }
 
   }
+
 
   static public void main(String args[]) {
     Help help = new Help();

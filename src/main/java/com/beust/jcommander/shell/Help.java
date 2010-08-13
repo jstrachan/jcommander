@@ -17,6 +17,7 @@
  */
 package com.beust.jcommander.shell;
 
+import com.beust.jcommander.Command;
 import com.beust.jcommander.Parameter;
 
 /**
@@ -24,6 +25,7 @@ import com.beust.jcommander.Parameter;
  *
  * @author <a href="http://hiramchirino.com">Hiram Chirino</a>
  */
+@Command(description = "Show this usage screen")
 public class Help {
 
   @Parameter(names = {"-h", "-?", "/?", "/h", "--help"}, description = "Show this usage screen")

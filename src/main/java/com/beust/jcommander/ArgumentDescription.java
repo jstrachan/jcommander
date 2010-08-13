@@ -21,6 +21,7 @@ package com.beust.jcommander;
 
 import com.beust.jcommander.internal.Lists;
 import com.beust.jcommander.internal.ResourceBundles;
+import com.beust.jcommander.shell.CompletionResult;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
@@ -163,5 +164,11 @@ public class ArgumentDescription {
   @Override
   public String toString() {
     return "[ArgumentDescription " + m_field.getName() + "]";
+  }
+
+  public void tabComplete(String[] args, int cursorPosition, CompletionResult candidates) {
+    // TODO
+    // Lets try to tab complete the current command based on this argument's possible set of values 
+
   }
 }

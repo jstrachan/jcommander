@@ -132,6 +132,28 @@
           <excludePackageNames>*.internal</excludePackageNames>
         </configuration>
       </plugin>
+<<<<<<< HEAD
+=======
+
+      <!-- lets us boot up the example shell -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.1.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass> com.beust.jcommander.shell.ShellExample</mainClass>
+          <classpathScope>test</classpathScope>
+        </configuration>
+      </plugin>
+
+>>>>>>> master
     </plugins>
   </build>
 
@@ -225,6 +247,7 @@
       </build>
     </profile>
 
+<<<<<<< HEAD
     <!-- to enable gpg signing settings in ~/.m2/settings.xml -->
     <profile>
       <id>release</id>
@@ -239,13 +262,23 @@
       <build>
         <plugins>
 
+=======
+    <profile>
+      <id>sign</id>
+      <build>
+        <plugins>
+          
+>>>>>>> master
           <!-- Signing with gpg -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
+<<<<<<< HEAD
             <configuration>
               <passphrase>${gpg.passphrase}</passphrase>
             </configuration>
+=======
+>>>>>>> master
             <executions>
               <execution>
                 <id>sign-artifacts</id>

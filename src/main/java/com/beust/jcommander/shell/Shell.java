@@ -21,15 +21,15 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.UsageReporter;
+import jline.Completor;
 import jline.ConsoleReader;
 import jline.Terminal;
 import jline.UnsupportedTerminal;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.lang.reflect.Method;
 import java.util.List;
 
 /**
@@ -41,6 +41,9 @@ import java.util.List;
  */
 abstract public class Shell implements Runnable, UsageReporter {
 
+  final private InputStream in = System.in;
+  final private PrintStream out = System.out;
+  final private PrintStream err = System.err;
 
   protected String prompt = "\u001B[1m>\u001B[0m ";
   protected Throwable lastException;
@@ -50,6 +53,7 @@ abstract public class Shell implements Runnable, UsageReporter {
 
   @Parameter(description = "a sub command to execute, if not specified, you will be placed into an interactive shell.")
   public List<String> cliArgs;
+  private Completor completer = createCompleter();
 
   public static class CloseShellException extends RuntimeException {
   }
@@ -94,10 +98,9 @@ abstract public class Shell implements Runnable, UsageReporter {
       CURRENT_SESSION.set(this);
       Terminal terminal = null;
       try {
-        AnsiConsole.systemInstall();
         terminal = openTerminal();
         try {
-          this.reader = new ConsoleReader(System.in, new PrintWriter(System.out), getClass().getResourceAsStream("keybinding.properties"), terminal);
+          this.reader = new ConsoleReader(System.in, new PrintWriter(out), getClass().getResourceAsStream("keybinding.properties"), terminal);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
@@ -111,47 +114,9 @@ abstract public class Shell implements Runnable, UsageReporter {
         }
 
         reader.setBellEnabled(bellEnabled);
-
-//            if (completer != null) {
-//                reader.addCompletor(
-//                    new CompleterAsCompletor(
-//                        new AggregateCompleter(
-//                            Arrays.asList(
-//                                completer,
-//                                new SessionScopeCompleter( session, completer )
-//                            )
-//                        )
-//                    )
-//                );
-//            }
-
-
-//            String scriptFileName = System.getProperty(SHELL_INIT_SCRIPT);
-//            if (scriptFileName != null) {
-//                Reader r = null;
-//                try {
-//                    File scriptFile = new File(scriptFileName);
-//                    r = new InputStreamReader(new FileInputStream(scriptFile));
-//                    CharArrayWriter w = new CharArrayWriter();
-//                    int n;
-//                    char[] buf = new char[8192];
-//                    while ((n = r.read(buf)) > 0) {
-//                        w.write(buf, 0, n);
-//                    }
-//                    session.execute(new String(w.toCharArray()));
-//                } catch (Exception e) {
-//                    LOGGER.debug("Error in initialization script", e);
-//                    System.err.println("Error in initialization script: " + e.getMessage());
-//                } finally {
-//                    if (r != null) {
-//                        try {
-//                            r.close();
-//                        } catch (IOException e) {
-//                            // Ignore
-//                        }
-//                    }
-//                }
-//            }
+        if (completer != null) {
+          reader.addCompletor(completer);
+        }
 
         try {
           while (true) {
@@ -170,7 +135,6 @@ abstract public class Shell implements Runnable, UsageReporter {
         }
 
       } finally {
-        AnsiConsole.systemUninstall();
         reader = null;
         closeTerminal(terminal);
         CURRENT_SESSION.set(original);
@@ -281,8 +245,11 @@ abstract public class Shell implements Runnable, UsageReporter {
     try {
       jc.parse(args);
     } catch (ParameterException e) {
-      dispalyInvalidUsage(command, e);
-      System.out.println();
+      err.print(Ansi.ansi().fg(Ansi.Color.RED));
+      err.println(command + ": invalid usage: " + e.getMessage());
+      err.print(Ansi.ansi().reset());
+      err.flush();
+      out.println();
       jc.usage();
       return;
     }
@@ -295,34 +262,26 @@ abstract public class Shell implements Runnable, UsageReporter {
     }
   }
 
-  private void dispalyInvalidUsage(String command, ParameterException e) {
-    System.err.print(Ansi.ansi().fg(Ansi.Color.RED));
-    System.err.println(command + ": invalid usage: " + e.getMessage());
-    System.err.print(Ansi.ansi().reset());
-    System.err.flush();
-  }
-
   public void displayFailure(String command, Throwable t) {
     lastException = t;
-    System.err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
+    err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
     if (printStackTraces) {
-      t.printStackTrace(System.err);
+      t.printStackTrace(err);
     } else {
       if( command==null ) {
-        System.err.println(getShellName() + ": " + t);
+        err.println(getShellName() + ": " + t);
       } else {
-        System.err.println(command + ": " + t);
+        err.println(command + ": " + t);
       }
     }
-    System.err.print(Ansi.ansi().reset());
-    System.err.flush();
+    err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
   }
 
   public void displayNotFound(String command) {
-    System.err.print(Ansi.ansi().fg(Ansi.Color.RED));
-    System.err.println(getShellName() + ": " + command + ": command not found");
-    System.err.print(Ansi.ansi().reset());
-    System.err.flush();
+    err.print(Ansi.ansi().fg(Ansi.Color.RED));
+    err.println(getShellName() + ": " + command + ": command not found");
+    err.print(Ansi.ansi().reset());
+    return;
   }
 
   /**
@@ -372,6 +331,29 @@ abstract public class Shell implements Runnable, UsageReporter {
       String args[] = cliArgs.toArray(new String[cliArgs.size()]);
       executeCommand(command, args);
     }
+  }
+
+
+  private static PrintStream wrap(PrintStream stream) {
+    OutputStream o = AnsiConsole.wrapOutputStream(stream);
+    if (o instanceof PrintStream) {
+      return ((PrintStream) o);
+    } else {
+      return new PrintStream(o);
+    }
+  }
+
+  private static <T> T unwrap(T stream) {
+    try {
+      Method mth = stream.getClass().getMethod("getRoot");
+      return (T) mth.invoke(stream);
+    } catch (Throwable t) {
+      return stream;
+    }
+  }
+
+  protected Completor createCompleter() {
+    return new ShellCompletor(this);
   }
 
 }
