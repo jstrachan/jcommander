@@ -132,25 +132,6 @@
           <excludePackageNames>*.internal</excludePackageNames>
         </configuration>
       </plugin>
-
-      <!-- Signing with gpg -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-gpg-plugin</artifactId>
-        <configuration>
-          <passphrase>${gpg.passphrase}</passphrase>
-        </configuration>
-        <executions>
-          <execution>
-            <id>sign-artifacts</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
     </plugins>
   </build>
 
@@ -250,6 +231,33 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
+    </profile>
+
+    <profile>
+      <id>sign</id>
+      
+      <build>
+        <plugins>
+
+          <!-- Signing with gpg -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <configuration>
+              <passphrase>${gpg.passphrase}</passphrase>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 
