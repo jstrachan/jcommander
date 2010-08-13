@@ -134,10 +134,24 @@
   </build>
 
   <properties>
-    <jansi.version>1.2</jansi.version>
+    <jansi.version>1.4</jansi.version>
     <jline.version>0.9.95.20100209</jline.version>
   </properties>
   
+  <repositories>
+    <repository>
+      <id>servicemix.m2</id>
+      <name>ServiceMix M2 Repository</name>
+      <url>http://svn.apache.org/repos/asf/servicemix/m2-repo</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+  </repositories>
+
 
   <dependencies>
 
