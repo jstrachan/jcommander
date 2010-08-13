@@ -31,7 +31,7 @@ import java.util.Set;
 
 import static com.beust.jcommander.internal.Strings.isEmpty;
 
-public class ArgumentDescription implements IDescription {
+public class ArgumentDescription {
   private Object m_object;
   private Argument m_argumentAnnotation;
   private Field m_field;

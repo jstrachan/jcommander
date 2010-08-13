@@ -31,7 +31,7 @@ import java.util.Set;
 
 import static com.beust.jcommander.internal.Strings.isEmpty;
 
-public class ParameterDescription implements IDescription {
+public class ParameterDescription {
   private Object m_object;
   private Parameter m_parameterAnnotation;
   private Field m_field;
