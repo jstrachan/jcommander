@@ -275,7 +275,7 @@ abstract public class Shell implements Runnable, UsageReporter {
   protected void executeCommand(String command, String[] args) {
     JCommander jc = createSubCommand(command);
     if (jc == null) {
-      notFound(command);
+      displayNotFound(command);
       return;
     }
     try {
@@ -294,18 +294,26 @@ abstract public class Shell implements Runnable, UsageReporter {
     } catch (CloseShellException e) {
       throw e;
     } catch (Throwable t) {
-      lastException = t;
-      err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
-      if (printStackTraces) {
-        t.printStackTrace(err);
-      } else {
-        err.println(command + ": " + t);
-      }
-      err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
+      displayFailure(command, t);
     }
   }
 
-  protected void notFound(String command) {
+  public void displayFailure(String command, Throwable t) {
+    lastException = t;
+    err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
+    if (printStackTraces) {
+      t.printStackTrace(err);
+    } else {
+      if( command==null ) {
+        err.println(getShellName() + ": " + t);
+      } else {
+        err.println(command + ": " + t);
+      }
+    }
+    err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
+  }
+
+  public void displayNotFound(String command) {
     err.print(Ansi.ansi().fg(Ansi.Color.RED));
     err.println(getShellName() + ": " + command + ": command not found");
     err.print(Ansi.ansi().reset());
