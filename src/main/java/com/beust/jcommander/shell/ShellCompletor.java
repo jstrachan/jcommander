@@ -53,17 +53,10 @@ class ShellCompletor implements Completor {
     CompletionResult results = new CompletionResult(cursorArgument);
 
     String[] args = argumentList.getArguments();
-    //JCommander commander = session.getJCommander();
-    //JCommander commander = Shell.getCurrentSession().getJCommander();
     JCommander commander = Shell.getCurrentJCommander();
     commander.tabComplete(args, index, results);
     results.getResults(candidates);
-    System.out.println("\nArgs: " + Arrays.asList(args) + " cursor Argument: " + cursorArgument + " index: " + index + " => " + candidates);
-    System.out.println("Commands: " + commander.getCommandDescription());
-
-    //System.out.println("Cursor arg: " + cursorArgument + " index: " + argumentIndex + " arg Index: " + argumentList.getArgumentPosition());
-    //System.out.println("Buffer: " + buffer + " cursor: " + cursor + " length: " + buffer.length() + " candidates: " + candidates);
-    return candidates.size();
+    return argumentList.getBufferPosition();
   }
 
 }

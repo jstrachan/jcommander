@@ -77,10 +77,8 @@ public class ShellExample {
 
 
   static public void main(String args[]) {
-    Help help = new Help();
     TestShell shell = new TestShell();
-    JCommander jc = new JCommander(new Object[]{shell, help});
-
+    JCommander jc = new JCommander(new Object[]{shell});
     jc.addCommand("add", new CommanderProviderSupport() {
       protected Object createCommandObject(String name) {
         return new CommandAdd();
@@ -91,13 +89,12 @@ public class ShellExample {
         return new CommandCommit();
       }
     });
-/*
     jc.addCommand("help", new CommanderProviderSupport() {
       protected Object createCommandObject(String name) {
+        // TODO use proper sub command help here
         return new Help();
       }
     });
-*/
     jc.addCommand("exit", new CommanderProviderSupport() {
       protected Object createCommandObject(String name) {
         System.exit(0);
@@ -105,7 +102,7 @@ public class ShellExample {
       }
     });
     jc.parse(args);
-    if( help.help) {
+    if (shell.help) {
       jc.usage();
     } else {
       shell.run(jc);

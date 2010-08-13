@@ -30,6 +30,7 @@ import org.fusesource.jansi.AnsiConsole;
 
 import java.io.*;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -51,9 +52,14 @@ abstract public class Shell implements Runnable, UsageReporter {
   protected boolean bellEnabled = true;
   protected File history;
 
+/*
   @Parameter(description = "a sub command to execute, if not specified, you will be placed into an interactive shell.")
   public List<String> cliArgs;
+*/
 
+  @Parameter(names = {"-h", "-?", "/?", "/h", "--help"}, description = "Show this usage screen")
+  public boolean help;
+  
   public static class CloseShellException extends RuntimeException {
   }
 
@@ -180,9 +186,7 @@ abstract public class Shell implements Runnable, UsageReporter {
     // TODO: replace with something that can handle quoted args etc.
     String[] args = line.split(" +");
     if (args.length > 0) {
-      String[] commandArgs = new String[args.length - 1];
-      System.arraycopy(args, 1, commandArgs, 0, args.length - 1);
-      executeCommand(commandArgs);
+      executeCommand(args);
     }
   }
 
@@ -235,8 +239,9 @@ abstract public class Shell implements Runnable, UsageReporter {
    */
   protected void executeCommand(String[] args) {
     JCommander jc = getCurrentJCommander();
+    JCommander subCommand = null;
     try {
-      jc.parse(args);
+      subCommand = jc.parse(args);
     } catch (ParameterException e) {
       err.print(Ansi.ansi().fg(Ansi.Color.RED));
       err.println("invalid usage: " + e.getMessage());
@@ -247,7 +252,7 @@ abstract public class Shell implements Runnable, UsageReporter {
       return;
     }
     try {
-      executeCommand(jc);
+      executeCommand(subCommand);
     } catch (CloseShellException e) {
       throw e;
     } catch (Throwable t) {
@@ -279,7 +284,6 @@ abstract public class Shell implements Runnable, UsageReporter {
    * commands using a different strategy.
    */
   protected void executeCommand(JCommander command) {
-    // TODO how to???
     for (Object o : command.getObjects()) {
       if (o instanceof Runnable) {
 
@@ -314,12 +318,15 @@ abstract public class Shell implements Runnable, UsageReporter {
    * @throws IOException
    */
   public void run() {
+    new Session().execute();
+/*
     if (cliArgs == null || cliArgs.isEmpty()) {
       new Session().execute();
     } else {
       String args[] = cliArgs.toArray(new String[cliArgs.size()]);
       executeCommand(args);
     }
+*/
   }
 
 

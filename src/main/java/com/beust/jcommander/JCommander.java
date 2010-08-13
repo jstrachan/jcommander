@@ -196,9 +196,10 @@ public class JCommander {
   }
 
   /**
-   * Parse the command line parameters.
+   * Parse the command line parameters returning the final commander if sub commands were used or this if there are
+   * no sub commands parsed.
    */
-  public void parse(String... args) {
+  public JCommander parse(String... args) {
     StringBuilder sb = new StringBuilder("Parsing \"");
     sb.append(join(args).append("\"\n  with:").append(join(m_objects.toArray())));
     p(sb.toString());
@@ -210,8 +211,9 @@ public class JCommander {
       addDescription(object);
     }
     initializeDefaultValues();
-    parseValues(expandArgs(args));
+    JCommander answer = parseValues(expandArgs(args));
     validateOptions();
+    return answer;
   }
 
   private StringBuilder join(Object[] args) {
@@ -454,7 +456,7 @@ public class JCommander {
   /**
    * Main method that parses the values and initializes the fields accordingly.
    */
-  private void parseValues(String[] args) {
+  private JCommander parseValues(String[] args) {
     // This boolean becomes true if we encounter a command, which indicates we need
     // to stop parsing (the parsing of the command will be done in a sub JCommander
     // object)
@@ -564,8 +566,7 @@ public class JCommander {
             // Found a valid command, ask it to parse the remainder of the arguments.
             // Setting the boolean commandParsed to true will force the current
             // loop to end.
-            jc.parse(subArray(args, i + 1));
-            commandParsed = true;
+            return jc.parse(subArray(args, i + 1));
           }
         }
       }
@@ -577,6 +578,7 @@ public class JCommander {
         throw new ParameterException("Missing " + ad.getName() + " argument");
       }
     }
+    return this;
   }
 
 
@@ -1025,13 +1027,20 @@ public class JCommander {
    * Add a command object.
    */
   public void addCommand(String name, final Object object) {
-    addCommandProvider(name, new ICommanderProvider() {
-      public JCommander createCommander(String name) {
-        JCommander jc = new JCommander(object);
-        jc.setProgramName(name);
-        return jc;
-      }
-    });
+    ICommanderProvider provider;
+    if (object instanceof ICommanderProvider) {
+      // allow folks to pass a provider into the addCommand method
+      provider = (ICommanderProvider) object;
+    } else {
+      provider = new ICommanderProvider() {
+        public JCommander createCommander(String name) {
+          JCommander jc = new JCommander(object);
+          jc.setProgramName(name);
+          return jc;
+        }
+      };
+    }
+    addCommandProvider(name, provider);
   }
 
   /**
