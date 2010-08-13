@@ -23,6 +23,7 @@ import com.beust.jcommander.converters.StringConverter;
 import com.beust.jcommander.internal.DefaultConverterFactory;
 import com.beust.jcommander.internal.Lists;
 import com.beust.jcommander.internal.Maps;
+import com.beust.jcommander.shell.CompletionResult;
 
 import java.io.BufferedReader;
 import java.io.Console;
@@ -57,9 +58,6 @@ import java.util.ResourceBundle;
 public class JCommander {
   public static final String DEBUG_PROPERTY = "jcommander.debug";
 
-  /**
-   * A map to look up parameter description per option name.
-   */
   private Map<String, ParameterDescription> m_descriptions;
 
   private Map<Integer, ArgumentDescription> m_arguments;
@@ -205,7 +203,12 @@ public class JCommander {
     sb.append(join(args).append("\"\n  with:").append(join(m_objects.toArray())));
     p(sb.toString());
 
-    createDescriptions();
+    m_descriptions = Maps.newHashMap();
+
+    // Create the ParameterDescriptions for all the @Parameter found.
+    for (Object object : m_objects) {
+      addDescription(object);
+    }
     initializeDefaultValues();
     parseValues(expandArgs(args));
     validateOptions();
@@ -222,7 +225,7 @@ public class JCommander {
 
   private void initializeDefaultValues() {
     if (m_defaultProvider != null) {
-      for (ParameterDescription pd : m_descriptions.values()) {
+      for (ParameterDescription pd : getDescriptions().values()) {
         initializeDefaultValue(pd);
       }
     }
@@ -298,7 +301,7 @@ public class JCommander {
   }
 
   private ParameterDescription getPrefixDescriptionFor(String arg) {
-    for (Map.Entry<String, ParameterDescription> es : m_descriptions.entrySet()) {
+    for (Map.Entry<String, ParameterDescription> es : getDescriptions().entrySet()) {
       if (arg.startsWith(es.getKey())) return es.getValue();
     }
 
@@ -390,17 +393,6 @@ public class JCommander {
     return result;
   }
 
-  /**
-   * Create the ParameterDescriptions for all the @Parameter found.
-   */
-  private void createDescriptions() {
-    m_descriptions = Maps.newHashMap();
-
-    for (Object object : m_objects) {
-      addDescription(object);
-    }
-  }
-
   private void addDescription(Object object) {
     Class<?> cls = object.getClass();
 
@@ -422,13 +414,13 @@ public class JCommander {
             m_mainParameterAnnotation = p;
           } else {
             for (String name : p.names()) {
-              if (m_descriptions.containsKey(name)) {
+              if (getDescriptions().containsKey(name)) {
                 throw new ParameterException("Found the option " + name + " multiple times");
               }
               p("Adding description for " + name);
               ParameterDescription pd = new ParameterDescription(object, p, f, m_bundle, this);
               m_fields.put(f, pd);
-              m_descriptions.put(name, pd);
+              getDescriptions().put(name, pd);
 
               if (p.required()) m_requiredFields.put(f, pd);
             }
@@ -478,7 +470,7 @@ public class JCommander {
         //
         // Option
         //
-        ParameterDescription pd = m_descriptions.get(a);
+        ParameterDescription pd = getDescriptions().get(a);
 
         if (pd != null) {
           if (pd.getParameter().password()) {
@@ -587,6 +579,99 @@ public class JCommander {
     }
   }
 
+
+  /**
+   * Attempts to perform tab completion in a shell
+   * or maybe using some kind of bash completion mechanism.
+   *
+   * Note that the cursorPosition can be beyond the end of the list
+   * when we are about to type a new argument.
+   *
+   * Basically we need to try figure out which pattern or argument the cursor is on, then
+   * figure out a list of all possible values we can deduce for that position and feed them
+   * into the result object which will filter and record the results
+   */
+  public void tabComplete(String[] args, int cursorPosition, CompletionResult results) {
+    int i = 0;
+    int argIndex = 0;
+    while (i <= cursorPosition) {
+      // TODO what if we start with an option???
+      // e.g. current arg is "-"
+
+      boolean option = false;
+      String a = null;
+      if (i < args.length) {
+        String arg = args[i];
+        a = trim(arg);
+        option = isOption(args, a);
+      }
+      if (option) {
+        //
+        // Option
+        //
+        ParameterDescription pd = getDescriptions().get(a);
+        if (i == cursorPosition) {
+          if (pd != null) {
+            // nothing to complete
+            break;
+          } else {
+            // find all the options which start with the arg
+            for (ParameterDescription d : getDescriptions().values()) {
+              String[] names = d.getParameter().names();
+              for (String name : names) {
+                results.addCandidate(name);
+              }
+            }
+          }
+        }
+        if (pd != null) {
+          // TODO need to figure out arity here to detect values after a parameter
+        }
+      } else {
+        //
+        // Main parameter
+        //
+        if (m_commands.isEmpty()) {
+          //
+          // Regular (non-command) parsing
+          //
+
+          if (getArguments().size() > argIndex) {
+            ArgumentDescription ad = getArgument(argIndex);
+            argIndex++;
+            if (i == cursorPosition) {
+              ad.tabComplete(args, cursorPosition, results);
+              break;
+            }
+          } else {
+            // TODO deal with main parameter
+            // lets pass any remaining arguments into the main parameter
+          }
+        } else {
+          if (i == cursorPosition) {
+            // Lets complete on all command names
+            results.addCandidates(m_commands.keySet());
+            break;
+          }
+          if (a != null) {
+            //
+            // Command parsing
+            //
+            JCommander jc = m_commands.get(a);
+            if (jc == null) throw new ParameterException("Expected a command, got " + a);
+
+            // Found a valid command, ask it to parse the remainder of the arguments.
+            // Setting the boolean commandParsed to true will force the current
+            // loop to end.
+            jc.tabComplete(subArray(args, i + 1), cursorPosition - 1, results);
+            break;
+          }
+        }
+      }
+      i++;
+    }
+  }
+
   protected ArgumentDescription getArgument(int argIndex) {
     ArgumentDescription ad = getArguments().get(argIndex);
     if (ad == null) {
@@ -634,7 +719,7 @@ public class JCommander {
   }
 
   public String getMainParameterDescription() {
-    if (m_descriptions == null) createDescriptions();
+    getDescriptions(); // force lazy create
     return m_mainParameterAnnotation != null ? m_mainParameterAnnotation.description()
         : null;
   }
@@ -691,7 +776,14 @@ public class JCommander {
    * Store the help in the passed string builder.
    */
   public void usage(StringBuilder out) {
-    if (m_descriptions == null) createDescriptions();
+    if (getDescriptions() == null) {
+      m_descriptions = Maps.newHashMap();
+
+      // Create the ParameterDescriptions for all the @Parameter found.
+      for (Object object : m_objects) {
+        addDescription(object);
+      }
+    }
     boolean hasCommands = ! m_commands.isEmpty();
 
     //
@@ -985,6 +1077,21 @@ public class JCommander {
       }
     }
     return m_argumentList;
+  }
+
+  /**
+   * A map to look up parameter description per option name.
+   */
+  protected Map<String, ParameterDescription> getDescriptions() {
+    if (m_descriptions == null) {
+      m_descriptions = Maps.newHashMap();
+
+      // Create the ParameterDescriptions for all the @Parameter found.
+      for (Object object : m_objects) {
+        addDescription(object);
+      }
+    }
+    return m_descriptions;
   }
 }
 

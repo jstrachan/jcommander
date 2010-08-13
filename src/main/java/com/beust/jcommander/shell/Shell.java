@@ -21,6 +21,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.UsageReporter;
+import jline.Completor;
 import jline.ConsoleReader;
 import jline.Terminal;
 import jline.UnsupportedTerminal;
@@ -52,6 +53,7 @@ abstract public class Shell implements Runnable, UsageReporter {
 
   @Parameter(description = "a sub command to execute, if not specified, you will be placed into an interactive shell.")
   public List<String> cliArgs;
+  private Completor completer = createCompleter();
 
   public static class CloseShellException extends RuntimeException {
   }
@@ -113,18 +115,20 @@ abstract public class Shell implements Runnable, UsageReporter {
 
         reader.setBellEnabled(bellEnabled);
 
-//            if (completer != null) {
-//                reader.addCompletor(
-//                    new CompleterAsCompletor(
-//                        new AggregateCompleter(
-//                            Arrays.asList(
-//                                completer,
-//                                new SessionScopeCompleter( session, completer )
-//                            )
-//                        )
-//                    )
-//                );
-//            }
+            if (completer != null) {
+                reader.addCompletor(completer);
+/*
+                    new CompleterAsCompletor(
+                        new AggregateCompleter(
+                            Arrays.asList(
+                                completer,
+                                new SessionScopeCompleter( session, completer )
+                            )
+                        )
+                    )
+                );
+*/
+            }
 
 
 //            String scriptFileName = System.getProperty(SHELL_INIT_SCRIPT);
@@ -386,6 +390,10 @@ abstract public class Shell implements Runnable, UsageReporter {
     } catch (Throwable t) {
       return stream;
     }
+  }
+
+  protected Completor createCompleter() {
+    return new ShellCompletor(this);
   }
 
 }
