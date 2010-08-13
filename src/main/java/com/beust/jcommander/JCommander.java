@@ -633,7 +633,7 @@ public class JCommander {
     }
   }
 
-  private String getMainParameterDescription() {
+  public String getMainParameterDescription() {
     if (m_descriptions == null) createDescriptions();
     return m_mainParameterAnnotation != null ? m_mainParameterAnnotation.description()
         : null;
@@ -779,9 +779,19 @@ public class JCommander {
         out.append("    " + name + s(spaceCount) + description + "\n");
       }
     }
+
+    //
+    // If a UsageReporter is being used, include it's usage as well.
+    //
+    for(Object o:m_objects) {
+      if( o instanceof UsageReporter) {
+        ((UsageReporter) o).usage(out);
+      }
+    }
+
   }
 
-  private String getCommandDescription() {
+  public String getCommandDescription() {
     for (Object object : m_objects) {
       Command command = object.getClass().getAnnotation(Command.class);
       if (command != null) {
@@ -942,6 +952,10 @@ public class JCommander {
     }
 
     return result.toString();
+  }
+
+  public List<Object> getObjects() {
+    return Collections.unmodifiableList(m_objects);
   }
 
   /**

@@ -15,30 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.beust.jcommander.command;
-
-import com.beust.jcommander.Command;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
+package com.beust.jcommander.shell;
 
 import java.util.List;
 
-@Command(description = "Record changes to the repository")
-@Parameters(separators = "=")
-public class CommandCommit implements Runnable {
+public interface Completer {
 
-  @Parameter(description = "<files>... the files to be added to the repository")
-  public List<String> files;
-
-  @Parameter(names = "--amend", description = "Amend")
-  public Boolean amend = false;
-
-  @Parameter(names = "--author")
-  public String author;
-
-  public void run() {
-    System.out.println("commit run.  author: "+author+", amend: "+amend+", files: "+files);
-  }
+    int complete(String buffer, int cursor, List<String> candidates);
 
 }

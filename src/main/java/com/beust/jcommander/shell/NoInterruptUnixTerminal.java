@@ -15,30 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.beust.jcommander.shell;
 
-package com.beust.jcommander.command;
+import jline.UnixTerminal;
 
-import com.beust.jcommander.Command;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
+import java.io.IOException;
 
-import java.util.List;
+public class NoInterruptUnixTerminal extends UnixTerminal {
 
-@Command(description = "Record changes to the repository")
-@Parameters(separators = "=")
-public class CommandCommit implements Runnable {
+    @Override
+    public void initializeTerminal() throws IOException, InterruptedException {
+        super.initializeTerminal();
+        stty("intr undef");
+    }
 
-  @Parameter(description = "<files>... the files to be added to the repository")
-  public List<String> files;
-
-  @Parameter(names = "--amend", description = "Amend")
-  public Boolean amend = false;
-
-  @Parameter(names = "--author")
-  public String author;
-
-  public void run() {
-    System.out.println("commit run.  author: "+author+", amend: "+amend+", files: "+files);
-  }
+    @Override
+    public void restoreTerminal() throws Exception {
+        stty("intr ^C");
+        super.restoreTerminal();
+    }
 
 }
