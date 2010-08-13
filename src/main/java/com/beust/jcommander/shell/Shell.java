@@ -27,8 +27,9 @@ import jline.UnsupportedTerminal;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 
-import java.io.*;
-import java.lang.reflect.Method;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 
 /**
@@ -40,9 +41,6 @@ import java.util.List;
  */
 abstract public class Shell implements Runnable, UsageReporter {
 
-  final private InputStream in = System.in;
-  final private PrintStream out = System.out;
-  final private PrintStream err = System.err;
 
   protected String prompt = "\u001B[1m>\u001B[0m ";
   protected Throwable lastException;
@@ -96,9 +94,10 @@ abstract public class Shell implements Runnable, UsageReporter {
       CURRENT_SESSION.set(this);
       Terminal terminal = null;
       try {
+        AnsiConsole.systemInstall();
         terminal = openTerminal();
         try {
-          this.reader = new ConsoleReader(System.in, new PrintWriter(out), getClass().getResourceAsStream("keybinding.properties"), terminal);
+          this.reader = new ConsoleReader(System.in, new PrintWriter(System.out), getClass().getResourceAsStream("keybinding.properties"), terminal);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
@@ -171,6 +170,7 @@ abstract public class Shell implements Runnable, UsageReporter {
         }
 
       } finally {
+        AnsiConsole.systemUninstall();
         reader = null;
         closeTerminal(terminal);
         CURRENT_SESSION.set(original);
@@ -281,11 +281,8 @@ abstract public class Shell implements Runnable, UsageReporter {
     try {
       jc.parse(args);
     } catch (ParameterException e) {
-      err.print(Ansi.ansi().fg(Ansi.Color.RED));
-      err.println(command + ": invalid usage: " + e.getMessage());
-      err.print(Ansi.ansi().reset());
-      err.flush();
-      out.println();
+      dispalyInvalidUsage(command, e);
+      System.out.println();
       jc.usage();
       return;
     }
@@ -298,26 +295,34 @@ abstract public class Shell implements Runnable, UsageReporter {
     }
   }
 
+  private void dispalyInvalidUsage(String command, ParameterException e) {
+    System.err.print(Ansi.ansi().fg(Ansi.Color.RED));
+    System.err.println(command + ": invalid usage: " + e.getMessage());
+    System.err.print(Ansi.ansi().reset());
+    System.err.flush();
+  }
+
   public void displayFailure(String command, Throwable t) {
     lastException = t;
-    err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
+    System.err.print(Ansi.ansi().fg(Ansi.Color.RED).toString());
     if (printStackTraces) {
-      t.printStackTrace(err);
+      t.printStackTrace(System.err);
     } else {
       if( command==null ) {
-        err.println(getShellName() + ": " + t);
+        System.err.println(getShellName() + ": " + t);
       } else {
-        err.println(command + ": " + t);
+        System.err.println(command + ": " + t);
       }
     }
-    err.print(Ansi.ansi().fg(Ansi.Color.DEFAULT).toString());
+    System.err.print(Ansi.ansi().reset());
+    System.err.flush();
   }
 
   public void displayNotFound(String command) {
-    err.print(Ansi.ansi().fg(Ansi.Color.RED));
-    err.println(getShellName() + ": " + command + ": command not found");
-    err.print(Ansi.ansi().reset());
-    return;
+    System.err.print(Ansi.ansi().fg(Ansi.Color.RED));
+    System.err.println(getShellName() + ": " + command + ": command not found");
+    System.err.print(Ansi.ansi().reset());
+    System.err.flush();
   }
 
   /**
@@ -366,25 +371,6 @@ abstract public class Shell implements Runnable, UsageReporter {
       String command = cliArgs.remove(0);
       String args[] = cliArgs.toArray(new String[cliArgs.size()]);
       executeCommand(command, args);
-    }
-  }
-
-
-  private static PrintStream wrap(PrintStream stream) {
-    OutputStream o = AnsiConsole.wrapOutputStream(stream);
-    if (o instanceof PrintStream) {
-      return ((PrintStream) o);
-    } else {
-      return new PrintStream(o);
-    }
-  }
-
-  private static <T> T unwrap(T stream) {
-    try {
-      Method mth = stream.getClass().getMethod("getRoot");
-      return (T) mth.invoke(stream);
-    } catch (Throwable t) {
-      return stream;
     }
   }
 
