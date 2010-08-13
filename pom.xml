@@ -132,8 +132,6 @@
           <excludePackageNames>*.internal</excludePackageNames>
         </configuration>
       </plugin>
-<<<<<<< HEAD
-=======
 
       <!-- lets us boot up the example shell -->
       <plugin>
@@ -153,7 +151,6 @@
         </configuration>
       </plugin>
 
->>>>>>> master
     </plugins>
   </build>
 
@@ -247,7 +244,6 @@
       </build>
     </profile>
 
-<<<<<<< HEAD
     <!-- to enable gpg signing settings in ~/.m2/settings.xml -->
     <profile>
       <id>release</id>
@@ -262,23 +258,13 @@
       <build>
         <plugins>
 
-=======
-    <profile>
-      <id>sign</id>
-      <build>
-        <plugins>
-          
->>>>>>> master
           <!-- Signing with gpg -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-<<<<<<< HEAD
             <configuration>
               <passphrase>${gpg.passphrase}</passphrase>
             </configuration>
-=======
->>>>>>> master
             <executions>
               <execution>
                 <id>sign-artifacts</id>
